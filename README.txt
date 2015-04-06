@@ -1,6 +1,10 @@
-This repository is a compiled list of projects created in past classes.
+This repository is a compiled list of projects created in past classes
+as well as code from other classes.
 Each folder represents a different project from a different class. 
 Below is a description of what each does 
+-----------------------------------------------------------------------
+d3Examples folder
+Visualizations created in d3 for a directed study on data visualization 
 -----------------------------------------------------------------------
 Class Projects 
 

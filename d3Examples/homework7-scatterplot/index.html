@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Data Visualization</title>
+		<script type="text/javascript" src="d3.v3.js"></script>
+		<link rel="stylesheet" href="style.css">
+	</head>
+	
+	<body>
+        <div id="graph"></div>
+		<script type="text/javascript">
+
+		// Reads in csv file and makes graph 
+		d3.csv("a1-burtin.csv", function(error, data) {
+			if (error)
+				console.log(data);
+			else { 
+				var headerNames = d3.keys(data[0]);
+                var d = parse(data);
+				makeGraph(d, headerNames);
+			}
+		});
+
+		// Parses the csv data
+		function parse(d) {
+			d.forEach( function(d) {
+                d.Bacteria = d.Bacteria;
+                d.Penicilin = +d.Penicilin;
+                d.Streptomycin = +d.Streptomycin; 
+                d.Neomycin = +d.Neomycin; 
+                d.Gram_Staining = d.Gram_Staining; 
+			})
+			return d;
+		}
+
+		// Returns data set from data passed in
+		function getData(csvdata, header, t) {
+			var dataset = [];
+			for (var i = 0; i < csvdata.length; i++) {
+				dataset.push(csvdata[i][header[t]]);
+			}
+			return dataset; 
+		}
+
+		// Does the actual graph 
+		function makeGraph(d, h) {
+
+			var header = h;
+			var data = d; 
+
+            // labels for y axis 
+            var bacteria = getData(d, h, 0);
+
+            // sets default dataset 
+			var dataset = getData(d, h, 1);            
+
+            var maxData = d3.max(dataset);
+
+            var w = 1200;
+            var h = 650;
+
+    	    var svg = d3.select("#graph").append("svg")
+                .attr("width", w + 200)
+                .attr("height", h);
+
+			// Title displayed 
+            var title = svg.append("text")
+            			  .attr("x", w/2 - 100)
+            			  .attr("y", "50")
+            			  .style("font-size", "40px")
+            			  .style("font-family", "sans-serif")
+            			  .attr("fill", "black")
+            			  .text("Antibiotics");
+
+			// Y Axis Title
+            var yTitle = svg.append("text")
+            			  .attr("x", w/8)
+            			  .attr("y", "100")
+            			  .style("font-size", "20px")
+            			  .style("font-family", "sans-serif")
+            			  .attr("fill", "black")
+            			  .attr("text-anchor", "middle")
+            			  .text("Bacteria");
+
+            // Everything below is used to create the y axis 
+            var y = d3.scale.linear().domain([0, bacteria.length + 1]).range([0, 400]);
+
+            // Added a space in front to allow better spacing to make everything more readable 
+            var yaxis = d3.svg.axis().scale(y).orient("left")
+                    .ticks(bacteria.length+1)
+                    .tickFormat(function (j, i) {
+                        return [" ", "Aerobacter aerogenes", "Brucella abortus", "Brucella anthracis", "Diplococcus pneumoniae", "Escherichia coli", "Klebsiella pneumoniae", "Mycobacterium tuberculosis", "Proteus vulgaris", "Pseudomonas aeruginosa", "Salmonella (Eberthella) typhosa ", "Salmonella schottmuelleri", "Staphylococcus albus", "Staphylococcus aureus", "Streptococcus fecalis", "Streptococcus hemolyticus", "Streptococcus viridans"][i];
+                    });
+
+            var yAxisLine = svg.append("g")
+                .attr("transform", "translate(220, 100)")
+                .attr("class", "axis")
+                .call(yaxis)
+                .attr("fill", "grey");
+
+            // Everything below used to create the x axis 
+            var x = d3.scale.linear().domain([0, maxData + 10]).range([0, 800]);
+
+            var xaxis = d3.svg.axis().scale(x).orient("bottom")
+                    .ticks(maxData / 100)
+                    .orient("bottom")
+                    .tickFormat(d3.format("d"));
+
+            var xAxisLine = svg.append("g")
+                .attr("transform", "translate(220, 500)")
+                .attr("class", "axis")
+                .call(xaxis)
+                .attr("fill", "grey");
+
+            // X Axis Title
+            var MIC = svg.append("text")
+                          .attr("x", w/2)
+                          .attr("y", "550")
+                          .style("font-size", "20px")
+                          .style("font-family", "sans-serif")
+                          .attr("fill", "black")
+                          .attr("text-anchor", "middle")
+                          .text("Minimum Inhibitory Concentration (MIC)");
+
+            // Rectangle background for graph 
+			var rect = svg.append('rect')	
+				.attr('width', 800)
+                .attr('height', 400)
+                .attr('x', 220)
+                .attr('y', 100)
+                .style('fill', 'lightgray')
+                .attr('stroke', 'white');
+
+            // Used for mouseovers
+            var tooltip = d3.select("#graph").append("div")
+               .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            // Penicilin
+            plotData(d, header, 1, x, y, "red", tooltip, svg);
+            // Streptomycin
+            plotData(d, header, 2, x, y, "green", tooltip, svg);
+            // Neomycin
+            plotData(d, header, 3, x, y, "orange", tooltip, svg);
+
+            var legY = 400; 
+            // Creates a legend 
+            var box = svg.append('rect')   
+                .attr('width', 200)
+                .attr('height', 200)
+                .attr('x', 1050)
+                .attr('y', legY)
+                .style('stroke', "2px")
+                .style('fill', 'white')
+                .attr('stroke', 'black');
+
+            // Title for Legend
+            var legendTitle = svg.append("text")
+                          .attr("x", w - 50)
+                          .attr("y", legY - 20)
+                          .style("font-size", "20px")
+                          .style("font-family", "sans-serif")
+                          .attr("fill", "black")
+                          .attr("text-anchor", "middle")
+                          .text("Legend");
+
+            // drawings for legend 
+            var penC = svg.append("circle")
+                .attr('cx', w - 115)
+                .attr('cy', legY + 20)
+                .attr('r', "7")
+                .attr('fill', "red");
+
+            var strepC = svg.append("circle")
+                .attr('cx', w - 115)
+                .attr('cy', legY + 45)
+                .attr('r', "7")
+                .attr('fill', "green");
+
+            var neoC = svg.append("circle")
+                .attr('cx', w - 115)
+                .attr('cy', legY + 70)
+                .attr('r', "7")
+                .attr('fill', "orange");
+
+            var large = svg.append("circle")
+                .attr('cx', w - 50)
+                .attr('cy', legY + 95)
+                .attr('r', "7")
+                .attr('fill', "black");
+            
+            var small = svg.append("circle")
+                .attr('cx', w - 50)
+                .attr('cy', legY + 145)
+                .attr('r', "3.5")
+                .attr('fill', "black");
+
+            // text for legend 
+            var penicilin = svg.append("text")
+                            .attr("x", w - 50)
+                            .attr("y", legY + 25)
+                            .style("font-size", "16px")
+                            .style("font-family", "sans-serif")
+                            .attr("fill", "black")
+                            .attr("text-anchor", "middle")
+                            .text("Penicilin");
+
+
+            var streptomycin = svg.append("text")
+                            .attr("x", w - 50)
+                            .attr("y", legY + 50)
+                            .style("font-size", "16px")
+                            .style("font-family", "sans-serif")
+                            .attr("fill", "black")
+                            .attr("text-anchor", "middle")
+                            .text("Streptomycin");
+
+            var neomycin = svg.append("text")
+                            .attr("x", w - 50)
+                            .attr("y", legY + 75)
+                            .style("font-size", "16px")
+                            .style("font-family", "sans-serif")
+                            .attr("fill", "black")
+                            .attr("text-anchor", "middle")
+                            .text("Neomycin");
+
+            var pos = svg.append("text")
+                            .attr("x", w - 50)
+                            .attr("y", legY + 125)
+                            .style("font-size", "16px")
+                            .style("font-family", "sans-serif")
+                            .attr("fill", "black")
+                            .attr("text-anchor", "middle")
+                            .text("Big Circle = Positive");
+
+            var neg = svg.append("text")
+                            .attr("x", w - 50)
+                            .attr("y", legY + 175)
+                            .style("font-size", "16px")
+                            .style("font-family", "sans-serif")
+                            .attr("fill", "black")
+                            .attr("text-anchor", "middle")
+                            .text("Small Circle = Negative");
+
+
+        }
+
+        // Plots the graph 
+        function plotData(data, header, t, xScale, yScale, c, tooltip, svg) {
+
+            var d = data; 
+            var h = header; 
+
+            var x = xScale; 
+            var y = yScale;
+
+            var color = c; 
+
+            // Scatter plot  
+            svg.selectAll("dot")
+                .data(d)
+                .enter()
+                .append("circle")
+                .attr('cx', function(d, i) { 
+                    //console.log(d);
+                    //console.log(x(d[header[[1]]]));
+
+                    //Translate by 220 to fit the rectangle 
+                    return x(d[h[t]]) + 220;  })
+                .attr('cy', function(d, i) { 
+                    // console.log(d);
+                    // console.log("DOWN " + i + 5.3 );
+                    // console.log(y(d[header[[0]]]));
+
+                    // Translate by 5.3 to fit the height of rectangle
+                    // Iterate by i to get position each of the bacteria in the array 
+                    return y(i + 5.3)})
+
+                .attr('r', function(d, i) {
+                    // if it's positive, make it bigger 
+                    if (d[h[4]] == "positive")
+                        return "7"
+                    else 
+                        return "3.5"})
+                .attr('fill', color)
+                .on("mouseover", function(d, i) {
+
+                    d3.select(this)
+                        .style("fill", "blue")
+                        .style("stroke-width", "3")
+                        .style("stroke", "blue");
+
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", 1);
+
+                    tooltip.html(" Bacteria: " + d.Bacteria+ "<br> Antibiotic:" + h[t] + "<br> MIC:" + d[h[t]]
+                        + "<br> Gram Staining: " + d[h[4]]) 
+                        .style("left", (d3.event.pageX + 20) + "px")
+                        .style("top", (d3.event.pageY - 48) + "px");
+                })
+                .on("mouseout", function() {
+
+                    d3.select(this)
+                        .style("fill", color)
+                        .style("stroke-width", "0")
+                        .style("stroke", "none");
+
+                    tooltip.transition()
+                           .duration(500)
+                           .style("opacity", 0);
+                });            
+            }
+
+		</script>
+
+	</body>
+</html>
